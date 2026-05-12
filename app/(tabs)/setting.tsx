@@ -31,6 +31,7 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             await AsyncStorage.clear();
+            router.replace("/");
             Alert.alert("Terminé", "L'application a été réinitialisée.");
           },
         },
@@ -107,12 +108,12 @@ export default function SettingsScreen() {
           <SettingItem
             icon={Code2}
             title="Voir le code source"
-            onPress={() => router.push("/setting")}
+            onPress={() => router.push("https://github.com/yvankraft/toDoList")}
           />
           <SettingItem
             icon={ShieldCheck}
             title="Confidentialité"
-            onPress={() => {}}
+            onPress={() => router.push("../privacy")}
           />
           <SettingItem
             icon={Info}

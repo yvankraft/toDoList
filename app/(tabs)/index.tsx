@@ -13,6 +13,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AddTaskModal } from "../modal";
 import { TodoItem } from "../components/TodoItem";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 
 export type Todo = {
   id: string;
@@ -29,6 +31,16 @@ export default function ComponentName() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [todoToEdit, setTodoToEdit] = useState<Todo | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadTodos = async () => {
+        const storedTodos = await AsyncStorage.getItem(STORAGE_KEY);
+        setTodos(storedTodos ? JSON.parse(storedTodos) : []);
+      };
+      loadTodos();
+    }, []),
+  );
 
   useEffect(() => {
     const loadTodos = async () => {
