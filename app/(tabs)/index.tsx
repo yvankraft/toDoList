@@ -1,98 +1,201 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from "react";
+import { Search, Plus } from "lucide-react-native";
+import { useColorScheme } from "nativewind";
+import {
+  Platform,
+  Pressable,
+  FlatList,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AddTaskModal } from "../modal";
+import { TodoItem } from "../components/TodoItem";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export type Todo = {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+  createdAt: number;
+};
 
-export default function HomeScreen() {
+const STORAGE_KEY = "@my_todo_list";
+
+export default function ComponentName() {
+  const [search, setSearch] = useState("");
+  const { colorScheme } = useColorScheme();
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [todoToEdit, setTodoToEdit] = useState<Todo | null>(null);
+
+  useEffect(() => {
+    const loadTodos = async () => {
+      try {
+        const storedTodos = await AsyncStorage.getItem(STORAGE_KEY);
+        if (storedTodos) setTodos(JSON.parse(storedTodos));
+      } catch (e) {
+        console.error("Erreur de chargement", e);
+      }
+    };
+    loadTodos();
+  }, []);
+
+  const saveAndSetTodos = async (newTodos: Todo[]) => {
+    setTodos(newTodos);
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newTodos));
+    } catch (e) {
+      console.error("Erreur de sauvegarde", e);
+    }
+  };
+
+  const handleSaveTask = (title: string) => {
+    if (todoToEdit) {
+      const updatedTodos = todos.map((t) =>
+        t.id === todoToEdit.id ? { ...t, title: title } : t,
+      );
+      saveAndSetTodos(updatedTodos);
+      setTodoToEdit(null);
+    } else {
+      const newTodo: Todo = {
+        id: Date.now().toString(),
+        title,
+        isCompleted: false,
+        createdAt: Date.now(),
+      };
+      saveAndSetTodos([newTodo, ...todos]);
+    }
+  };
+
+  const toggleTodo = (id: string) => {
+    const updated = todos.map((t) =>
+      t.id === id ? { ...t, isCompleted: !t.isCompleted } : t,
+    );
+    saveAndSetTodos(updated);
+  };
+
+  const deleteTodo = (id: string) => {
+    const updated = todos.filter((t) => t.id !== id);
+    saveAndSetTodos(updated);
+  };
+
+  const handleEditPress = (todo: Todo) => {
+    setTodoToEdit(todo);
+    setIsModalVisible(true);
+  };
+
+  const filteredTodos = todos.filter((t) =>
+    t.title.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const iconColor = colorScheme === "dark" ? "#94a3b8" : "#64748b";
+  const inverColor = colorScheme === "dark" ? "#18181b" : "#FFFFFF";
+
+  const completedCount = todos.filter((t) => t.isCompleted).length;
+  const totalCount = todos.length;
+  const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView className="flex-1 bg-white dark:bg-[#18181b]">
+      <View className="flex-1 px-6">
+        {/* Header Section */}
+        <View className="mt-8 mb-6">
+          <Text className="text-4xl font-black text-zinc-900 dark:text-white">
+            Mes Tâches
+          </Text>
+          <Text className="text-xl font-medium text-zinc-400 mb-6">
+            Soyons productifs !
+          </Text>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+          {/* Stats & Progress */}
+          <View className="bg-zinc-50 dark:bg-zinc-800/50 p-5 rounded-[28px]">
+            <View className="flex-row justify-between items-center mb-3">
+              <View>
+                <Text className="text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest text-[10px]">
+                  Progression
+                </Text>
+                <Text className="text-zinc-900 dark:text-white font-bold text-lg">
+                  {completedCount}{" "}
+                  <Text className="text-zinc-400">/ {totalCount}</Text>
+                </Text>
+              </View>
+              <View className="bg-blue-500 px-3 py-1 rounded-full">
+                <Text className="text-white font-bold text-sm">
+                  {Math.round(progress)}%
+                </Text>
+              </View>
+            </View>
+
+            {/* Progress Bar Progressive */}
+            <View className="h-2 w-full bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+              <View
+                className="h-full bg-blue-500 rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Search Bar - Plus fine et élégante */}
+        <View className="flex-row items-center bg-zinc-100 dark:bg-zinc-800 px-4 py-1 rounded-2xl mb-6 border border-zinc-200 dark:border-zinc-700">
+          <Search size={20} strokeWidth={2} color={iconColor} />
+          <TextInput
+            placeholder="Rechercher une tâche..."
+            value={search}
+            onChangeText={setSearch}
+            className="flex-1 dark:text-white p-3 font-medium"
+            autoCapitalize="none"
+            placeholderTextColor="#94a3b8"
+          />
+        </View>
+
+        {/* List Section */}
+        <FlatList
+          data={filteredTodos}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TodoItem
+              todo={item}
+              onToggle={toggleTodo}
+              onDelete={deleteTodo}
+              onEdit={handleEditPress}
+            />
+          )}
+          contentContainerStyle={{ paddingBottom: 160 }}
+          ListEmptyComponent={
+            <View className="mt-20 items-center">
+              <Text className="text-zinc-400 font-medium text-center">
+                {search
+                  ? "Aucun résultat trouvé pour cette recherche."
+                  : "Votre liste est vide.\nCommencez par ajouter une tâche !"}
+              </Text>
+            </View>
+          }
+        />
+
+        {/* Floating Action Button (FAB) */}
+        <View className="absolute bottom-20 right-6 shadow-2xl shadow-blue-500/50">
+          <Pressable
+            onPress={() => setIsModalVisible(true)}
+            className="bg-zinc-900 dark:bg-white w-16 h-16 rounded-full items-center justify-center active:scale-90 transition-all"
+          >
+            <Plus size={32} color={inverColor} strokeWidth={3} />
+          </Pressable>
+        </View>
+
+        <AddTaskModal
+          isVisible={isModalVisible}
+          initialData={todoToEdit}
+          onAdd={handleSaveTask}
+          onClose={() => {
+            setIsModalVisible(false);
+            setTodoToEdit(null);
+          }}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
