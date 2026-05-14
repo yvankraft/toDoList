@@ -1,12 +1,9 @@
 import { Tabs } from "expo-router";
 import React from "react";
-
+import { Platform } from "react-native";
 import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { BlurView } from "expo-blur";
-import { Platform, StyleSheet } from "react-native";
+import { ListChecks, Settings } from "lucide-react-native";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -29,7 +26,8 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colorScheme === "dark" ? "#18181b" : "#F9FAFB",
           position: "absolute",
-          bottom: 30,
+          // ajuster le margin bottom de la bar de navigation en fonction que l'on soit sur android ou ios
+          bottom: Platform.OS === "android" ? 40 : 30,
           height: 65,
           marginHorizontal: 20,
           paddingBottom: 0,
@@ -56,19 +54,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Tasks", // "Tasks" colle mieux au style Dev
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="list.bullet" color={color} />
-          ),
+          title: "Tasks",
+          tabBarIcon: ({ color }) => <ListChecks size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="setting"
         options={{
           title: "Settings",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="gearshape.fill" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <Settings size={24} color={color} />,
         }}
       />
     </Tabs>

@@ -1,27 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { Search, Plus } from "lucide-react-native";
-import { useColorScheme } from "nativewind";
-import {
-  Platform,
-  Pressable,
-  FlatList,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AddTaskModal } from "../modal";
-import { TodoItem } from "../components/TodoItem";
 import { useFocusEffect } from "expo-router";
-import { useCallback } from "react";
-
-export type Todo = {
-  id: string;
-  title: string;
-  isCompleted: boolean;
-  createdAt: number;
-};
+import { Plus, Search } from "lucide-react-native";
+import { useColorScheme } from "nativewind";
+import React, { useCallback, useEffect, useState } from "react";
+import { FlatList, Pressable, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Todo } from "../../types/todo";
+import { AddTaskModal } from "../modal";
+import TodoItem from "../TodoItem";
 
 const STORAGE_KEY = "@my_todo_list";
 

@@ -1,13 +1,7 @@
-import { View, Text, Pressable } from "react-native";
-import { CheckCircle2, Circle, Trash2, Pencil } from "lucide-react-native";
+import { CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
-
-export type Todo = {
-  id: string;
-  title: string;
-  isCompleted: boolean;
-  createdAt: number;
-};
+import { Pressable, Text, View } from "react-native";
+import { Todo } from "../types/todo";
 
 interface TodoItemProps {
   todo: Todo;
@@ -16,12 +10,12 @@ interface TodoItemProps {
   onEdit: (todo: Todo) => void;
 }
 
-export const TodoItem = ({
+export default function TodoItem({
   todo,
   onToggle,
   onDelete,
   onEdit,
-}: TodoItemProps) => {
+}: TodoItemProps) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -89,4 +83,4 @@ export const TodoItem = ({
       </View>
     </View>
   );
-};
+}

@@ -85,7 +85,7 @@ export const AddTaskModal = ({
             <TextInput
               placeholder="Ex: Acheter du pain..."
               placeholderTextColor="#64748b"
-              className="bg-gray-50 dark:bg-zinc-800 p-4 rounded-2xl text-lg dark:text-white border border-gray-100 dark:border-zinc-700 focus:border-gray-500"
+              className="bg-gray-50 mb-2 dark:bg-zinc-800 p-4 rounded-2xl text-lg dark:text-white border border-gray-100 dark:border-zinc-700 focus:border-gray-500"
               autoFocus={true}
               value={taskTitle}
               onChangeText={setTaskTitle}
