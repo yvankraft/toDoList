@@ -1,109 +1,606 @@
-import React, { useState, useEffect } from "react";
 import {
-  Modal,
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform,
+    BatteryFull,
+    BatteryLow,
+    BatteryMedium,
+    Bell,
+    Calendar,
+    Check,
+    Clock,
+    ListTodo,
+    Plus,
+    Repeat,
+    StickyNote,
+    X,
+} from "lucide-react-native";
+import { useColorScheme } from "nativewind";
+import { useRef, useState } from "react";
+import {
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
-import { X } from "lucide-react-native";
+import {
+    DURATIONS,
+    ENERGY_LABELS,
+    ICON_KEYS,
+    RECURRENCE_LABELS,
+    REMINDER_OPTIONS,
+    TASK_COLORS,
+    TASK_ICONS,
+    TIME_SLOTS,
+} from "../constants/tasks";
+import { useTodos } from "../hooks/use-todos";
+import {
+    addDays,
+    DAYS_SHORT,
+    formatDuration,
+    fromDateKey,
+    todayKey
+} from "../lib/date";
+import type {
+    EnergyLevel,
+    Recurrence,
+    SubTask,
+    Todo,
+    TodoDraft,
+} from "../types/todo";
 
-export type Todo = {
-  id: string;
-  title: string;
-  isCompleted: boolean;
-  createdAt: number;
+export type TaskDefaults = {
+  date?: string | null;
+  startTime?: string | null;
 };
 
-interface AddTaskModalProps {
+interface TaskModalProps {
   isVisible: boolean;
   onClose: () => void;
-  onAdd: (title: string) => void;
+  onSave: (draft: TodoDraft) => void;
+  onDelete?: () => void;
   initialData?: Todo | null;
+  defaults?: TaskDefaults;
 }
+
+const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+/** Libellé d'une section du formulaire */
+const SectionLabel = ({ icon: Icon, label }: { icon: any; label: string }) => (
+  <View className="flex-row items-center gap-2 mb-2 ml-1">
+    <Icon size={13} color="#94a3b8" strokeWidth={2.5} />
+    <Text className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500">
+      {label}
+    </Text>
+  </View>
+);
+
+const Chip = ({
+  label,
+  selected,
+  onPress,
+  accent,
+  disabled,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  accent: string;
+  disabled?: boolean;
+}) => (
+  <Pressable
+    onPress={onPress}
+    disabled={disabled}
+    className={`px-4 py-2.5 rounded-full mr-2 mb-2 ${
+      selected
+        ? ""
+        : "bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700"
+    } ${disabled ? "opacity-40" : "active:opacity-70"}`}
+    style={selected ? { backgroundColor: accent } : undefined}
+  >
+    <Text
+      className={`font-semibold text-sm ${
+        selected ? "text-white" : "text-gray-700 dark:text-zinc-300"
+      }`}
+    >
+      {label}
+    </Text>
+  </Pressable>
+);
 
 export const AddTaskModal = ({
   isVisible,
   onClose,
-  onAdd,
+  onSave,
+  onDelete,
   initialData,
-}: AddTaskModalProps) => {
-  const [taskTitle, setTaskTitle] = useState("");
+  defaults,
+}: TaskModalProps) => (
+  <Modal
+    animationType="fade"
+    transparent
+    visible={isVisible}
+    onRequestClose={onClose}
+  >
+    <View className="flex-1 justify-end bg-black/60">
+      {isVisible && (
+        <TaskForm
+          initialData={initialData ?? null}
+          defaults={defaults}
+          onSave={onSave}
+          onDelete={onDelete}
+          onClose={onClose}
+        />
+      )}
+    </View>
+  </Modal>
+);
 
-  // On remplit le champ si on reçoit des données à modifier
-  useEffect(() => {
-    if (initialData) {
-      setTaskTitle(initialData.title);
-    } else {
-      setTaskTitle("");
-    }
-  }, [initialData, isVisible]);
+interface TaskFormProps {
+  initialData: Todo | null;
+  defaults?: TaskDefaults;
+  onSave: (draft: TodoDraft) => void;
+  onDelete?: () => void;
+  onClose: () => void;
+}
 
-  const handleAdd = () => {
-    if (taskTitle.trim().length > 0) {
-      onAdd(taskTitle);
-      setTaskTitle("");
-      onClose();
-    }
+/** Le formulaire est remonté à chaque ouverture -> état initialisé depuis les props */
+const TaskForm = ({
+  initialData,
+  defaults,
+  onSave,
+  onDelete,
+  onClose,
+}: TaskFormProps) => {
+  const { settings } = useTodos();
+  const accent = settings.accent;
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const [title, setTitle] = useState(initialData?.title ?? "");
+  const [notes, setNotes] = useState(initialData?.notes ?? "");
+  const [icon, setIcon] = useState(initialData?.icon ?? "check");
+  const [color, setColor] = useState(initialData?.color ?? TASK_COLORS[0]);
+  const [date, setDate] = useState<string | null>(
+    initialData
+      ? initialData.date
+      : defaults?.date !== undefined
+        ? defaults.date
+        : todayKey(),
+  );
+  const [startTime, setStartTime] = useState<string | null>(
+    initialData ? initialData.startTime : (defaults?.startTime ?? null),
+  );
+  const [duration, setDuration] = useState(initialData?.duration ?? 30);
+  const [recurrence, setRecurrence] = useState<Recurrence>(
+    initialData?.recurrence ?? "none",
+  );
+  const [reminderMinutes, setReminderMinutes] = useState<number | null>(
+    initialData?.reminderMinutes ?? null,
+  );
+  const [energy, setEnergy] = useState<EnergyLevel | null>(
+    initialData?.energy ?? null,
+  );
+  const [subtasks, setSubtasks] = useState<SubTask[]>(
+    initialData?.subtasks ?? [],
+  );
+  const [subtaskInput, setSubtaskInput] = useState("");
+  const timeListRef = useRef<ScrollView>(null);
+
+  const hasSchedule = date !== null;
+  const hasTime = hasSchedule && startTime !== null;
+
+  const handleSave = () => {
+    if (title.trim().length === 0) return;
+    onSave({
+      title: title.trim(),
+      notes,
+      icon,
+      color,
+      date,
+      startTime: hasTime ? startTime : null,
+      duration,
+      recurrence: hasSchedule ? recurrence : "none",
+      reminderMinutes: hasTime ? reminderMinutes : null,
+      energy,
+      subtasks,
+    });
+    onClose();
   };
 
+  const addSubtask = () => {
+    const t = subtaskInput.trim();
+    if (!t) return;
+    setSubtasks([...subtasks, { id: uid(), title: t, isCompleted: false }]);
+    setSubtaskInput("");
+  };
+
+  // Prochains 30 jours pour le sélecteur de date
+  const nextDays = Array.from({ length: 30 }, (_, i) =>
+    addDays(todayKey(), i),
+  );
+
+  const reminderOptions = REMINDER_OPTIONS;
+
   return (
-    <Modal
-      animationType="fade" // "fade" pour l'overlay, le contenu montera avec le KeyboardAvoidingView
-      transparent={true}
-      visible={isVisible}
-      onRequestClose={onClose}
-    >
-      {/* Overlay assombri (marche en light et dark) */}
-      <View className="flex-1 justify-end bg-black/60">
-        <KeyboardAvoidingView
+    <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          // Couleurs de fond pour Light et Dark
-          className="bg-white dark:bg-zinc-900 rounded-t-[35px] p-8 pb-12 shadow-2xl"
+          className="bg-white dark:bg-zinc-900 rounded-t-[32px] shadow-2xl"
+          style={{ maxHeight: "92%" }}
         >
-          {/* Header de la Modale */}
-          <View className="flex-row justify-between items-center mb-8">
-            <Text className="text-2xl font-black text-gray-900 dark:text-slate-50">
-              {initialData ? "Modifier la tâche" : "Nouvelle tâche"}
-            </Text>
-            <Pressable
-              onPress={onClose}
-              className="p-2 bg-gray-100 dark:bg-zinc-800 rounded-full active:opacity-70"
-            >
-              {/* Couleur de l'icône adaptable */}
-              <X size={20} color="#94a3b8" />
-            </Pressable>
-          </View>
-
-          {/* Champ de saisie */}
-          <View>
-            <Text className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500 mb-2 ml-1">
-              Titre de la mission
-            </Text>
-            <TextInput
-              placeholder="Ex: Acheter du pain..."
-              placeholderTextColor="#64748b"
-              className="bg-gray-50 mb-2 dark:bg-zinc-800 p-4 rounded-2xl text-lg dark:text-white border border-gray-100 dark:border-zinc-700 focus:border-gray-500"
-              autoFocus={true}
-              value={taskTitle}
-              onChangeText={setTaskTitle}
-              selectionColor="#3b82f6" // Couleur du curseur
-            />
-          </View>
-
-          {/* Bouton de validation */}
-          <Pressable
-            onPress={handleAdd}
-            className="bg-gray-900 dark:bg-white  mt-8 p-4 rounded-2xl items-center shadow-lg active:scale-95 transition-all mb-4"
+          <ScrollView
+            className="px-6 pt-6"
+            contentContainerStyle={{ paddingBottom: 40 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <Text className="text-white dark:text-gray-500 font-extrabold text-lg">
-              {initialData ? "Enregistrer" : "Créer la tâche"}
-            </Text>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
+            {/* Header */}
+            <View className="flex-row justify-between items-center mb-6">
+              <Text className="text-2xl font-black text-gray-900 dark:text-slate-50">
+                {initialData ? "Modifier la tâche" : "Nouvelle tâche"}
+              </Text>
+              <Pressable
+                onPress={onClose}
+                className="p-2 bg-gray-100 dark:bg-zinc-800 rounded-full active:opacity-70"
+              >
+                <X size={20} color="#94a3b8" />
+              </Pressable>
+            </View>
+
+            {/* Titre */}
+            <TextInput
+              placeholder="Que veux-tu faire ?"
+              placeholderTextColor="#64748b"
+              className="bg-gray-50 dark:bg-zinc-800 p-4 rounded-2xl text-lg dark:text-white border border-gray-100 dark:border-zinc-700 mb-6"
+              autoFocus={!initialData}
+              value={title}
+              onChangeText={setTitle}
+              selectionColor={accent}
+            />
+
+            {/* Icône */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="mb-5"
+            >
+              {ICON_KEYS.map((key) => {
+                const Icon = TASK_ICONS[key];
+                const selected = icon === key;
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => setIcon(key)}
+                    className={`w-11 h-11 rounded-2xl items-center justify-center mr-2 ${
+                      selected
+                        ? ""
+                        : "bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700"
+                    }`}
+                    style={
+                      selected ? { backgroundColor: color } : undefined
+                    }
+                  >
+                    <Icon
+                      size={20}
+                      color={selected ? "#fff" : isDark ? "#a1a1aa" : "#71717a"}
+                    />
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            {/* Couleur */}
+            <View className="flex-row flex-wrap mb-5">
+              {TASK_COLORS.map((c) => (
+                <Pressable
+                  key={c}
+                  onPress={() => setColor(c)}
+                  className="w-9 h-9 rounded-full mr-2 mb-2 items-center justify-center active:scale-90"
+                  style={{ backgroundColor: c }}
+                >
+                  {color === c && (
+                    <View className="w-3 h-3 rounded-full bg-white" />
+                  )}
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Date */}
+            <SectionLabel icon={Calendar} label="Date" />
+            <View className="flex-row flex-wrap mb-2">
+              <Chip
+                label="Inbox"
+                selected={date === null}
+                onPress={() => setDate(null)}
+                accent={accent}
+              />
+              <Chip
+                label="Aujourd'hui"
+                selected={date === todayKey()}
+                onPress={() => setDate(todayKey())}
+                accent={accent}
+              />
+              <Chip
+                label="Demain"
+                selected={date === addDays(todayKey(), 1)}
+                onPress={() => setDate(addDays(todayKey(), 1))}
+                accent={accent}
+              />
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="mb-5"
+            >
+              {nextDays.map((key) => {
+                const d = fromDateKey(key);
+                const selected = date === key;
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => setDate(key)}
+                    className={`w-14 py-2 rounded-2xl items-center mr-2 ${
+                      selected
+                        ? ""
+                        : "bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700"
+                    }`}
+                    style={selected ? { backgroundColor: accent } : undefined}
+                  >
+                    <Text
+                      className={`text-[10px] font-bold uppercase ${
+                        selected
+                          ? "text-white/80"
+                          : "text-gray-400 dark:text-zinc-500"
+                      }`}
+                    >
+                      {DAYS_SHORT[d.getDay()]}
+                    </Text>
+                    <Text
+                      className={`text-lg font-black ${
+                        selected
+                          ? "text-white"
+                          : "text-gray-800 dark:text-zinc-200"
+                      }`}
+                    >
+                      {d.getDate()}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            {/* Heure */}
+            <SectionLabel icon={Clock} label="Heure de début" />
+            <View className="flex-row flex-wrap mb-2">
+              <Chip
+                label="Toute la journée"
+                selected={!hasTime}
+                onPress={() => setStartTime(null)}
+                accent={accent}
+                disabled={!hasSchedule}
+              />
+            </View>
+            {hasSchedule && (
+              <ScrollView
+                ref={timeListRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="mb-5"
+              >
+                {TIME_SLOTS.map((t) => {
+                  const selected = startTime === t;
+                  return (
+                    <Pressable
+                      key={t}
+                      onPress={() => setStartTime(t)}
+                      className={`px-3.5 py-2 rounded-xl mr-2 ${
+                        selected
+                          ? ""
+                          : "bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700"
+                      }`}
+                      style={
+                        selected ? { backgroundColor: accent } : undefined
+                      }
+                    >
+                      <Text
+                        className={`font-semibold text-sm ${
+                          selected
+                            ? "text-white"
+                            : "text-gray-700 dark:text-zinc-300"
+                        }`}
+                      >
+                        {t}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
+
+            {/* Durée */}
+            <SectionLabel icon={Clock} label="Durée" />
+            <View className="flex-row flex-wrap mb-5">
+              {DURATIONS.map((d) => (
+                <Chip
+                  key={d}
+                  label={formatDuration(d)}
+                  selected={duration === d}
+                  onPress={() => setDuration(d)}
+                  accent={accent}
+                />
+              ))}
+            </View>
+
+            {/* Récurrence */}
+            <SectionLabel icon={Repeat} label="Répéter" />
+            <View className="flex-row flex-wrap mb-5">
+              {(Object.keys(RECURRENCE_LABELS) as Recurrence[]).map((r) => (
+                <Chip
+                  key={r}
+                  label={RECURRENCE_LABELS[r]}
+                  selected={recurrence === r}
+                  onPress={() => setRecurrence(r)}
+                  accent={accent}
+                  disabled={!hasSchedule}
+                />
+              ))}
+            </View>
+
+            {/* Rappel */}
+            <SectionLabel icon={Bell} label="Rappel" />
+            <View className="flex-row flex-wrap mb-5">
+              {reminderOptions.map((opt) => (
+                <Chip
+                  key={String(opt.value)}
+                  label={opt.label}
+                  selected={reminderMinutes === opt.value}
+                  onPress={() => setReminderMinutes(opt.value)}
+                  accent={accent}
+                  disabled={!hasTime}
+                />
+              ))}
+            </View>
+
+            {/* Énergie */}
+            <SectionLabel icon={BatteryMedium} label="Énergie requise" />
+            <View className="flex-row flex-wrap mb-5">
+              {(
+                [
+                  { key: "low", Icon: BatteryLow },
+                  { key: "medium", Icon: BatteryMedium },
+                  { key: "high", Icon: BatteryFull },
+                ] as const
+              ).map(({ key, Icon }) => (
+                <View key={key}>
+                  <Pressable
+                    onPress={() => setEnergy(energy === key ? null : key)}
+                    className={`flex-row items-center gap-1.5 px-4 py-2.5 rounded-full mr-2 mb-2 ${
+                      energy === key
+                        ? ""
+                        : "bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700"
+                    }`}
+                    style={
+                      energy === key ? { backgroundColor: accent } : undefined
+                    }
+                  >
+                    <Icon
+                      size={15}
+                      color={energy === key ? "#fff" : "#94a3b8"}
+                    />
+                    <Text
+                      className={`font-semibold text-sm ${
+                        energy === key
+                          ? "text-white"
+                          : "text-gray-700 dark:text-zinc-300"
+                      }`}
+                    >
+                      {ENERGY_LABELS[key]}
+                    </Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+
+            {/* Sous-tâches */}
+            <SectionLabel icon={ListTodo} label="Sous-tâches" />
+            {subtasks.map((s) => (
+              <View
+                key={s.id}
+                className="flex-row items-center bg-gray-50 dark:bg-zinc-800 rounded-xl px-3 py-2.5 mb-2 border border-gray-100 dark:border-zinc-700"
+              >
+                <Pressable
+                  onPress={() =>
+                    setSubtasks(
+                      subtasks.map((x) =>
+                        x.id === s.id
+                          ? { ...x, isCompleted: !x.isCompleted }
+                          : x,
+                      ),
+                    )
+                  }
+                  className="w-5 h-5 rounded-full border-2 items-center justify-center mr-3 active:scale-90"
+                  style={{
+                    borderColor: accent,
+                    backgroundColor: s.isCompleted ? accent : "transparent",
+                  }}
+                >
+                  {s.isCompleted && (
+                    <Check size={11} color="#fff" strokeWidth={4} />
+                  )}
+                </Pressable>
+                <Text
+                  className={`flex-1 font-medium dark:text-white ${
+                    s.isCompleted ? "line-through opacity-50" : ""
+                  }`}
+                >
+                  {s.title}
+                </Text>
+                <Pressable
+                  onPress={() =>
+                    setSubtasks(subtasks.filter((x) => x.id !== s.id))
+                  }
+                  className="p-1 active:opacity-60"
+                >
+                  <X size={16} color="#ef4444" />
+                </Pressable>
+              </View>
+            ))}
+            <View className="flex-row items-center mb-6">
+              <TextInput
+                placeholder="Ajouter une sous-tâche..."
+                placeholderTextColor="#64748b"
+                className="flex-1 bg-gray-50 dark:bg-zinc-800 p-3 rounded-xl dark:text-white border border-gray-100 dark:border-zinc-700 mr-2"
+                value={subtaskInput}
+                onChangeText={setSubtaskInput}
+                onSubmitEditing={addSubtask}
+                returnKeyType="done"
+              />
+              <Pressable
+                onPress={addSubtask}
+                className="p-3 rounded-xl active:opacity-70"
+                style={{ backgroundColor: accent }}
+              >
+                <Plus size={18} color="#fff" />
+              </Pressable>
+            </View>
+
+            {/* Notes */}
+            <SectionLabel icon={StickyNote} label="Notes" />
+            <TextInput
+              placeholder="Détails, liens, idées..."
+              placeholderTextColor="#64748b"
+              className="bg-gray-50 dark:bg-zinc-800 p-4 rounded-2xl dark:text-white border border-gray-100 dark:border-zinc-700 mb-8"
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              value={notes}
+              onChangeText={setNotes}
+            />
+
+            {/* Sauvegarder */}
+            <Pressable
+              onPress={handleSave}
+              className="p-4 rounded-2xl items-center shadow-lg active:scale-95 transition-all mb-3"
+              style={{ backgroundColor: accent }}
+            >
+              <Text className="text-white font-extrabold text-lg">
+                {initialData ? "Enregistrer" : "Créer la tâche"}
+              </Text>
+            </Pressable>
+
+            {/* Supprimer (édition uniquement) */}
+            {initialData && onDelete && (
+              <Pressable
+                onPress={onDelete}
+                className="p-4 rounded-2xl items-center bg-red-500/10 active:opacity-70 mb-4"
+              >
+                <Text className="text-red-500 font-bold">Supprimer</Text>
+              </Pressable>
+            )}
+          </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
+
+export default AddTaskModal;

@@ -1,23 +1,61 @@
-import { CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react-native";
+import {
+    BatteryFull,
+    BatteryLow,
+    BatteryMedium,
+    Bell,
+    CheckCircle2,
+    Circle,
+    Repeat,
+    Trash2,
+} from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { Pressable, Text, View } from "react-native";
-import { Todo } from "../types/todo";
+import { TASK_ICONS } from "../constants/tasks";
+import { formatDayLabel, formatDuration, taskTimeRange } from "../lib/date";
+import type { Todo } from "../types/todo";
 
 interface TodoItemProps {
   todo: Todo;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (todo: Todo) => void;
+  /** Affiche le badge de date (utile dans Inbox/recherche) */
+  showDate?: boolean;
 }
+
+const ENERGY_ICONS = {
+  low: BatteryLow,
+  medium: BatteryMedium,
+  high: BatteryFull,
+};
 
 export default function TodoItem({
   todo,
   onToggle,
   onDelete,
   onEdit,
+  showDate = false,
 }: TodoItemProps) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const Icon = TASK_ICONS[todo.icon] ?? TASK_ICONS.check;
+
+  const doneSubtasks = todo.subtasks.filter((s) => s.isCompleted).length;
+  const EnergyIcon = todo.energy ? ENERGY_ICONS[todo.energy] : null;
+
+  // Méta : "09:00 → 10:30 · 1h30 · 2/5" etc.
+  const meta: string[] = [];
+  if (showDate) {
+    meta.push(todo.date ? formatDayLabel(todo.date) : "Inbox");
+  }
+  if (todo.startTime) {
+    meta.push(taskTimeRange(todo.startTime, todo.duration));
+  } else {
+    meta.push(formatDuration(todo.duration));
+  }
+  if (todo.subtasks.length > 0) {
+    meta.push(`${doneSubtasks}/${todo.subtasks.length}`);
+  }
 
   return (
     <View
@@ -27,29 +65,39 @@ export default function TodoItem({
           : "bg-white border-zinc-100 shadow-sm shadow-zinc-200"
       }`}
     >
-      {/* Bouton de validation (Toggle) */}
+      {/* Toggle */}
       <Pressable
         onPress={() => onToggle(todo.id)}
         className="active:scale-90 transition-all"
+        hitSlop={8}
       >
         {todo.isCompleted ? (
-          <View className="bg-green-500/10 p-1 rounded-full">
-            <CheckCircle2 size={22} color="#22c55e" strokeWidth={2.5} />
-          </View>
+          <CheckCircle2 size={24} color="#22c55e" strokeWidth={2.5} />
         ) : (
           <Circle
-            size={22}
+            size={24}
             color={isDark ? "#52525b" : "#d4d4d8"}
             strokeWidth={2}
           />
         )}
       </Pressable>
 
-      {/* Texte de la tâche */}
-      <View className="flex-1 ml-3">
+      {/* Icône colorée */}
+      <View
+        className="w-10 h-10 rounded-2xl items-center justify-center ml-3"
+        style={{ backgroundColor: todo.color + "22" }}
+      >
+        <Icon size={20} color={todo.color} strokeWidth={2.2} />
+      </View>
+
+      {/* Titre + méta */}
+      <Pressable
+        onPress={() => onEdit(todo)}
+        className="flex-1 ml-3 active:opacity-60"
+      >
         <Text
           numberOfLines={1}
-          className={`text-[17px] font-medium ${
+          className={`text-[16px] font-semibold ${
             todo.isCompleted
               ? "line-through text-zinc-400 dark:text-zinc-500"
               : "text-zinc-900 dark:text-zinc-100"
@@ -57,30 +105,28 @@ export default function TodoItem({
         >
           {todo.title}
         </Text>
-      </View>
+        <View className="flex-row items-center mt-0.5 gap-2">
+          <Text numberOfLines={1} className="text-[12px] text-zinc-400">
+            {meta.join("  ·  ")}
+          </Text>
+          {todo.recurrence !== "none" && (
+            <Repeat size={12} color={todo.color} />
+          )}
+          {todo.reminderMinutes != null && todo.startTime && (
+            <Bell size={12} color={todo.color} />
+          )}
+          {EnergyIcon && <EnergyIcon size={14} color={todo.color} />}
+        </View>
+      </Pressable>
 
-      {/* Actions */}
-      <View className="flex-row items-center gap-1">
-        {/* Bouton Modifier */}
-        <Pressable
-          onPress={() => onEdit(todo)}
-          className="p-2 active:opacity-60 rounded-full"
-        >
-          <Pencil
-            size={20}
-            color={isDark ? "#a1a1aa" : "#71717a"}
-            strokeWidth={2}
-          />
-        </Pressable>
-
-        {/* Bouton Supprimer */}
-        <Pressable
-          onPress={() => onDelete(todo.id)}
-          className="p-2 active:opacity-60 rounded-full"
-        >
-          <Trash2 size={20} color="#ef4444" strokeWidth={2} />
-        </Pressable>
-      </View>
+      {/* Supprimer */}
+      <Pressable
+        onPress={() => onDelete(todo.id)}
+        className="p-2 active:opacity-60 rounded-full"
+        hitSlop={8}
+      >
+        <Trash2 size={18} color="#ef4444" strokeWidth={2} />
+      </Pressable>
     </View>
   );
 }

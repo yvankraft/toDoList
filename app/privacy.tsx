@@ -1,33 +1,32 @@
-import React from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
-  ShieldCheck,
-  Lock,
-  Database,
-  EyeOff,
-  ChevronLeft,
+    ChevronLeft,
+    Database,
+    EyeOff,
+    Lock,
+    ShieldCheck,
 } from "lucide-react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+const PrivacySection = ({ icon: Icon, title, description }: any) => (
+  <View className="flex-row mb-8">
+    <View className="bg-blue-500/10 p-3 rounded-2xl h-12 w-12 items-center justify-center">
+      <Icon size={24} color="#3b82f6" />
+    </View>
+    <View className="flex-1 ml-4">
+      <Text className="text-lg font-bold text-zinc-900 dark:text-white mb-1">
+        {title}
+      </Text>
+      <Text className="text-zinc-500 dark:text-zinc-400 leading-6">
+        {description}
+      </Text>
+    </View>
+  </View>
+);
 
 export default function PrivacyScreen() {
   const router = useRouter();
-
-  const PrivacySection = ({ icon: Icon, title, description }: any) => (
-    <View className="flex-row mb-8">
-      <View className="bg-blue-500/10 p-3 rounded-2xl h-12 w-12 items-center justify-center">
-        <Icon size={24} color="#3b82f6" />
-      </View>
-      <View className="flex-1 ml-4">
-        <Text className="text-lg font-bold text-zinc-900 dark:text-white mb-1">
-          {title}
-        </Text>
-        <Text className="text-zinc-500 dark:text-zinc-400 leading-6">
-          {description}
-        </Text>
-      </View>
-    </View>
-  );
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-[#18181b]">
@@ -81,10 +80,10 @@ export default function PrivacyScreen() {
 
         <View className="bg-zinc-50 dark:bg-zinc-800/50 p-6 rounded-[32px] mb-10 border border-zinc-100 dark:border-zinc-700">
           <Text className="text-zinc-900 dark:text-white font-bold mb-2">
-            Besoin d'aide ?
+            Besoin d’aide ?
           </Text>
           <Text className="text-zinc-500 dark:text-zinc-400 text-sm leading-5">
-            Si vous avez des questions sur la sécurité de l'application, vous
+            Si vous avez des questions sur la sécurité de l’application, vous
             pouvez consulter le code source sur GitHub ou nous contacter
             directement.
           </Text>
