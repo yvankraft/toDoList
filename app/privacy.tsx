@@ -1,18 +1,18 @@
 import { useRouter } from "expo-router";
 import {
-    ChevronLeft,
-    Database,
-    EyeOff,
-    Lock,
-    ShieldCheck,
-} from "lucide-react-native";
+    CaretLeftIcon as ChevronLeft,
+    DatabaseIcon as Database,
+    EyeSlashIcon as EyeOff,
+    LockKeyIcon as Lock,
+    ShieldCheckIcon as ShieldCheck,
+} from "phosphor-react-native";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const PrivacySection = ({ icon: Icon, title, description }: any) => (
   <View className="flex-row mb-8">
     <View className="bg-blue-500/10 p-3 rounded-2xl h-12 w-12 items-center justify-center">
-      <Icon size={24} color="#3b82f6" />
+      <Icon size={24} color="#3b82f6" weight="duotone" />
     </View>
     <View className="flex-1 ml-4">
       <Text className="text-lg font-bold text-zinc-900 dark:text-white mb-1">
@@ -36,7 +36,7 @@ export default function PrivacyScreen() {
           onPress={() => router.back()}
           className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-full"
         >
-          <ChevronLeft size={24} color="#94a3b8" />
+          <ChevronLeft size={24} color="#94a3b8" weight="bold" />
         </Pressable>
         <Text className="ml-4 text-xl font-bold dark:text-white">
           Confidentialité
@@ -49,7 +49,7 @@ export default function PrivacyScreen() {
       >
         <View className="items-center mb-10">
           <View className="bg-green-500/10 p-6 rounded-full mb-4">
-            <ShieldCheck size={48} color="#22c55e" strokeWidth={1.5} />
+            <ShieldCheck size={48} color="#22c55e" weight="duotone" />
           </View>
           <Text className="text-2xl font-black text-center dark:text-white">
             Vos données vous appartiennent

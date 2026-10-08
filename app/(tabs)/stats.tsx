@@ -1,13 +1,15 @@
-import {
-    CalendarCheck,
-    Flame,
-    ListChecks,
-    Timer,
-} from "lucide-react-native";
 import { useColorScheme } from "nativewind";
-import React, { useMemo } from "react";
+import {
+    CalendarCheckIcon,
+    FireIcon,
+    ListChecksIcon,
+    TimerIcon,
+} from "phosphor-react-native";
+import { useMemo } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle } from "react-native-svg";
+import { cardShadow } from "../../components/glass-card";
 import { useTodos } from "../../hooks/use-todos";
 import {
     addDays,
@@ -18,29 +20,85 @@ import {
     todayKey,
 } from "../../lib/date";
 
+const ProgressRing = ({
+  progress,
+  accent,
+  size = 60,
+}: {
+  progress: number;
+  accent: string;
+  size?: number;
+}) => {
+  const { colorScheme } = useColorScheme();
+  const stroke = 6;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  return (
+    <Svg width={size} height={size}>
+      <Circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        stroke={colorScheme === "dark" ? "#3f3f46" : "#e4e4e7"}
+        strokeWidth={stroke}
+        fill="none"
+      />
+      <Circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        stroke={accent}
+        strokeWidth={stroke}
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray={`${c} ${c}`}
+        strokeDashoffset={c * (1 - Math.min(progress, 1))}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+      />
+    </Svg>
+  );
+};
+
 const StatCard = ({
   icon: Icon,
   label,
   value,
   sub,
   accent,
+  progress,
 }: {
   icon: any;
   label: string;
   value: string;
   sub?: string;
   accent: string;
+  /** 0-1 : affiche un anneau de progression à la place du texte */
+  progress?: number;
 }) => (
-  <View className="flex-1 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-3xl border border-zinc-100 dark:border-zinc-700/50">
+  <View
+    className="flex-1 bg-white/80 dark:bg-zinc-800/50 p-4 rounded-3xl border border-zinc-100 dark:border-zinc-700/50"
+    style={cardShadow}
+  >
     <View
       className="w-9 h-9 rounded-xl items-center justify-center mb-3"
       style={{ backgroundColor: accent + "22" }}
     >
-      <Icon size={18} color={accent} />
+      <Icon size={18} color={accent} weight="duotone" />
     </View>
-    <Text className="text-2xl font-black text-zinc-900 dark:text-white">
-      {value}
-    </Text>
+    {progress !== undefined ? (
+      <View style={{ width: 60, height: 60 }}>
+        <ProgressRing progress={progress} accent={accent} />
+        <View className="absolute inset-0 items-center justify-center">
+          <Text className="font-black text-[15px] text-zinc-900 dark:text-white">
+            {value}
+          </Text>
+        </View>
+      </View>
+    ) : (
+      <Text className="text-2xl font-black text-zinc-900 dark:text-white">
+        {value}
+      </Text>
+    )}
     <Text className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mt-0.5">
       {label}
     </Text>
@@ -123,14 +181,14 @@ export default function StatsScreen() {
         {/* Cartes */}
         <View className="flex-row gap-3 mb-3">
           <StatCard
-            icon={Flame}
+            icon={FireIcon}
             label="Streak"
             value={`${stats.streak}`}
             sub={stats.streak > 1 ? "jours de suite" : "jour"}
             accent={accent}
           />
           <StatCard
-            icon={CalendarCheck}
+            icon={CalendarCheckIcon}
             label="Aujourd'hui"
             value={`${stats.doneToday}`}
             sub="tâches faites"
@@ -139,14 +197,15 @@ export default function StatsScreen() {
         </View>
         <View className="flex-row gap-3 mb-3">
           <StatCard
-            icon={ListChecks}
+            icon={ListChecksIcon}
             label="Complétion"
             value={`${rate}%`}
             sub={`${stats.completedTotal}/${stats.total} tâches`}
             accent={accent}
+            progress={rate / 100}
           />
           <StatCard
-            icon={Timer}
+            icon={TimerIcon}
             label="À faire"
             value={formatDuration(stats.scheduledMin)}
             sub="planifiées aujourd'hui"
@@ -155,7 +214,10 @@ export default function StatsScreen() {
         </View>
 
         {/* Graphe 7 jours */}
-        <View className="bg-zinc-50 dark:bg-zinc-800/50 p-5 rounded-3xl border border-zinc-100 dark:border-zinc-700/50 mt-3">
+        <View
+          className="bg-white/80 dark:bg-zinc-800/50 p-5 rounded-3xl border border-zinc-100 dark:border-zinc-700/50 mt-3"
+          style={cardShadow}
+        >
           <Text className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-4">
             Tâches complétées · 7 derniers jours
           </Text>

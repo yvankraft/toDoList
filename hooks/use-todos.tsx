@@ -118,6 +118,26 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
     [syncCalendar],
   );
 
+  // Local-first : persist() immédiat, puis les effets natifs (notifs +
+  // calendrier) en arrière-plan. Un module natif qui bloque dans Expo Go
+  // ne doit jamais empêcher la sauvegarde locale.
+  const runNativeSideEffects = async (
+    todo: Todo,
+    list: Todo[],
+  ): Promise<void> => {
+    try {
+      if (settings.notificationsEnabled && !todo.isCompleted) {
+        todo.notificationId = await scheduleTaskReminder(todo);
+      }
+      await pushToCalendar(todo);
+      if (todo.notificationId || todo.calendarEventId) {
+        await persist([...list]);
+      }
+    } catch (e) {
+      console.warn("Sync natif échouée", e);
+    }
+  };
+
   const addTodo = useCallback(
     async (draft: TodoDraft) => {
       const todo: Todo = {
@@ -129,12 +149,11 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         notificationId: null,
         calendarEventId: null,
       };
-      if (settings.notificationsEnabled) {
-        todo.notificationId = await scheduleTaskReminder(todo);
-      }
-      await pushToCalendar(todo);
-      await persist([todo, ...todos]);
+      const list = [todo, ...todos];
+      await persist(list);
+      await runNativeSideEffects(todo, list);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [todos, persist, settings.notificationsEnabled, pushToCalendar],
   );
 
@@ -142,13 +161,19 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
     async (id: string, draft: TodoDraft) => {
       const existing = todos.find((t) => t.id === id);
       if (!existing) return;
-      await cancelTaskReminder(existing);
       const updated: Todo = { ...existing, ...draft, notificationId: null };
-      if (settings.notificationsEnabled && !updated.isCompleted) {
-        updated.notificationId = await scheduleTaskReminder(updated);
+      const list = todos.map((t) => (t.id === id ? updated : t));
+      await persist(list);
+      try {
+        await cancelTaskReminder(existing);
+        if (settings.notificationsEnabled && !updated.isCompleted) {
+          updated.notificationId = await scheduleTaskReminder(updated);
+        }
+        await pushToCalendar(updated);
+        await persist([...list]);
+      } catch (e) {
+        console.warn("Sync native échouée", e);
       }
-      await pushToCalendar(updated);
-      await persist(todos.map((t) => (t.id === id ? updated : t)));
     },
     [todos, persist, settings.notificationsEnabled, pushToCalendar],
   );
@@ -156,13 +181,17 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
   const deleteTodo = useCallback(
     async (id: string) => {
       const existing = todos.find((t) => t.id === id);
+      await persist(todos.filter((t) => t.id !== id));
       if (existing) {
-        await cancelTaskReminder(existing);
-        if (existing.calendarEventId) {
-          await deleteTaskEvent(existing.calendarEventId);
+        try {
+          await cancelTaskReminder(existing);
+          if (existing.calendarEventId) {
+            await deleteTaskEvent(existing.calendarEventId);
+          }
+        } catch (e) {
+          console.warn("Nettoyage natif échoué", e);
         }
       }
-      await persist(todos.filter((t) => t.id !== id));
     },
     [todos, persist],
   );
@@ -183,20 +212,16 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
         completedAt: completing ? Date.now() : null,
       };
 
-      if (completing) {
-        await cancelTaskReminder(updated);
-        updated.notificationId = null;
-      }
-
       let next = todos.map((t) => (t.id === id ? updated : t));
 
       // Tâche récurrente terminée -> génère la prochaine occurrence
+      let occurrence: Todo | null = null;
       if (
         completing &&
         updated.recurrence !== "none" &&
         updated.date
       ) {
-        const occurrence: Todo = {
+        occurrence = {
           ...updated,
           id: uid(),
           isCompleted: false,
@@ -206,14 +231,26 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
           notificationId: null,
           calendarEventId: null,
         };
-        if (settings.notificationsEnabled) {
-          occurrence.notificationId = await scheduleTaskReminder(occurrence);
-        }
-        await pushToCalendar(occurrence);
         next = [...next, occurrence];
       }
 
       await persist(next);
+      try {
+        if (completing) {
+          await cancelTaskReminder(updated);
+          updated.notificationId = null;
+        }
+        if (occurrence) {
+          if (settings.notificationsEnabled) {
+            occurrence.notificationId =
+              await scheduleTaskReminder(occurrence);
+          }
+          await pushToCalendar(occurrence);
+          await persist([...next]);
+        }
+      } catch (e) {
+        console.warn("Sync native échouée", e);
+      }
     },
     [todos, persist, settings.notificationsEnabled, pushToCalendar],
   );
@@ -248,27 +285,33 @@ export function TodosProvider({ children }: { children: React.ReactNode }) {
       const migrated = incoming.map(migrateTodo);
       // Les IDs d'événements d'une autre sauvegarde ne sont pas valides ici
       for (const t of migrated) t.calendarEventId = null;
-      if (syncCalendar && (await hasCalendarPermission())) {
-        for (const t of migrated) {
-          t.calendarEventId = await syncTaskToCalendar(t);
-        }
-      }
       await persist(migrated);
       if (incomingSettings) await updateSettings(incomingSettings);
+      // Réécriture calendrier en arrière-plan
+      try {
+        if (syncCalendar && (await hasCalendarPermission())) {
+          for (const t of migrated) {
+            t.calendarEventId = await syncTaskToCalendar(t);
+          }
+          await persist([...migrated]);
+        }
+      } catch (e) {
+        console.warn("Import : sync calendrier échouée", e);
+      }
     },
     [persist, updateSettings, syncCalendar],
   );
 
   const clearAll = useCallback(async () => {
-    // Supprime les événements créés dans le calendrier par l'app
-    for (const t of todos) {
-      if (t.calendarEventId) await deleteTaskEvent(t.calendarEventId);
-    }
     try {
       await AsyncStorage.multiRemove([TODOS_KEY, SETTINGS_KEY]);
     } catch {}
     setTodos([]);
     setSettings(DEFAULT_SETTINGS);
+    // Supprime les événements créés dans le calendrier par l'app
+    for (const t of todos) {
+      if (t.calendarEventId) await deleteTaskEvent(t.calendarEventId);
+    }
   }, [todos]);
 
   // Ref pour la réconciliation (évite les dépendances de callback)

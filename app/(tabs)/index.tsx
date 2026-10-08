@@ -1,33 +1,34 @@
-import {
-    Calendar as CalendarIcon,
-    Check,
-    ChevronLeft,
-    ChevronRight,
-    Inbox
-} from "lucide-react-native";
 import { useColorScheme } from "nativewind";
+import {
+  CalendarBlankIcon as CalendarIcon,
+  CaretLeftIcon as CaretLeft,
+  CaretRightIcon as CaretRight,
+  CheckIcon as Check,
+  TrayIcon as Inbox,
+} from "phosphor-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Alert,
-    Pressable,
-    ScrollView,
-    Text,
-    View
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GlassCard } from "../../components/glass-card";
 import { TASK_ICONS } from "../../constants/tasks";
 import { useCalendarEvents } from "../../hooks/use-calendar-events";
 import { useTaskModal, type TaskDefaults } from "../../hooks/use-task-modal";
 import { useTodos } from "../../hooks/use-todos";
 import {
-    addDays,
-    DAYS_SHORT,
-    formatDayLabel,
-    fromDateKey,
-    minutesToTime,
-    timeToMinutes,
-    todayKey,
-    weekDays
+  addDays,
+  DAYS_SHORT,
+  formatDayLabel,
+  fromDateKey,
+  minutesToTime,
+  timeToMinutes,
+  todayKey,
+  weekDays
 } from "../../lib/date";
 import type { CalendarDayEvent, Todo } from "../../types/todo";
 
@@ -244,23 +245,39 @@ export default function TimelineScreen() {
             </Pressable>
           </View>
           <View
-            className="px-3 py-1.5 rounded-full"
+            className="px-3 py-1.5 rounded-full min-w-20"
             style={{ backgroundColor: accent + "22" }}
           >
-            <Text className="font-bold" style={{ color: accent }}>
+            <Text
+              className="font-bold text-center"
+              style={{ color: accent }}
+            >
               {doneCount}/{dayTodos.length} · {progress}%
             </Text>
+            <View
+              className="h-1 rounded-full mt-1 overflow-hidden"
+              style={{ backgroundColor: accent + "30" }}
+            >
+              <View
+                className="h-1 rounded-full"
+                style={{
+                  backgroundColor: accent,
+                  width: `${progress}%`,
+                }}
+              />
+            </View>
           </View>
         </View>
 
         {/* Sélecteur de semaine */}
-        <View className="flex-row items-center mb-4">
+        <GlassCard className="mb-4" padding={6}>
+        <View className="flex-row items-center">
           <Pressable
             onPress={() => setSelectedKey(addDays(selectedKey, -7))}
             className="p-2 active:opacity-60"
             hitSlop={8}
           >
-            <ChevronLeft size={20} color={isDark ? "#a1a1aa" : "#71717a"} />
+            <CaretLeft size={20} color={isDark ? "#a1a1aa" : "#71717a"} weight="bold" />
           </Pressable>
           <View className="flex-1 flex-row justify-between">
             {days.map((key) => {
@@ -315,9 +332,10 @@ export default function TimelineScreen() {
             className="p-2 active:opacity-60"
             hitSlop={8}
           >
-            <ChevronRight size={20} color={isDark ? "#a1a1aa" : "#71717a"} />
+            <CaretRight size={20} color={isDark ? "#a1a1aa" : "#71717a"} weight="bold" />
           </Pressable>
         </View>
+        </GlassCard>
 
         {/* Tâches "toute la journée" + événements calendrier */}
         {(allDay.length > 0 || allDayEvents.length > 0) && (
@@ -342,7 +360,7 @@ export default function TimelineScreen() {
                   borderColor: e.color + "44",
                 }}
               >
-                <CalendarIcon size={14} color={e.color} />
+                <CalendarIcon size={14} color={e.color} weight="duotone" />
                 <Text
                   className="ml-1.5 font-semibold text-sm"
                   style={{ color: e.color }}
@@ -365,7 +383,7 @@ export default function TimelineScreen() {
                     opacity: todo.isCompleted ? 0.5 : 1,
                   }}
                 >
-                  <Icon size={14} color={todo.color} />
+                  <Icon size={14} color={todo.color} weight="duotone" />
                   <Text
                     className={`ml-1.5 font-semibold text-sm ${
                       todo.isCompleted ? "line-through" : ""
@@ -384,7 +402,7 @@ export default function TimelineScreen() {
         <ScrollView
           ref={scrollRef}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 180 }}
+         
         >
           <View style={{ height: HOUR_HEIGHT * 24, flexDirection: "row" }}>
             {/* Colonne des heures */}
@@ -477,7 +495,7 @@ export default function TimelineScreen() {
                         <CalendarIcon
                           size={compact ? 11 : 13}
                           color={e.color}
-                          strokeWidth={2.5}
+                          weight="duotone"
                         />
                         <Text
                           numberOfLines={1}
@@ -528,7 +546,7 @@ export default function TimelineScreen() {
                       <Icon
                         size={compact ? 11 : 13}
                         color={todo.color}
-                        strokeWidth={2.5}
+                        weight="duotone"
                       />
                       <Text
                         numberOfLines={1}
@@ -554,7 +572,7 @@ export default function TimelineScreen() {
                         }}
                       >
                         {todo.isCompleted && (
-                          <Check size={11} color="#fff" strokeWidth={4} />
+                          <Check size={11} color="#fff" weight="bold" />
                         )}
                       </Pressable>
                     </View>
@@ -579,7 +597,7 @@ export default function TimelineScreen() {
           {/* Empty state */}
           {dayTodos.length === 0 && dayEvents.length === 0 && (
             <View className="items-center mt-6">
-              <Inbox size={32} color={isDark ? "#3f3f46" : "#d4d4d8"} />
+              <Inbox size={32} color={isDark ? "#3f3f46" : "#d4d4d8"} weight="duotone" />
               <Text className="text-zinc-400 font-medium text-center mt-3">
                 Rien de prévu.{"\n"}Touchez une heure ou le + pour planifier.
               </Text>

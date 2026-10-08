@@ -13,6 +13,7 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "9.1.0",
     "babel-preset-expo": "~57.0.0",
     "expo": "^57.0.27",
     "expo-blur": "~57.0.3",
@@ -29,8 +30,8 @@
     "expo-symbols": "~57.0.3",
     "expo-system-ui": "~57.0.4",
     "expo-web-browser": "~57.0.3",
-    "lucide-react-native": "^1.14.0",
     "nativewind": "^4.2.3",
+    "phosphor-react-native": "^3.0.6",
     "prettier-plugin-tailwindcss": "^0.5.14",
     "react": "19.2.3",
     "react-dom": "19.2.3",

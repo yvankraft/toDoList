@@ -1,13 +1,14 @@
+import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { Tabs } from "expo-router";
-import {
-    BarChart3,
-    CalendarDays,
-    Inbox,
-    Plus,
-    Settings,
-} from "lucide-react-native";
 import { useColorScheme } from "nativewind";
+import {
+  CalendarBlankIcon,
+  ChartBarIcon,
+  GearSixIcon,
+  PlusIcon,
+  TrayIcon,
+} from "phosphor-react-native";
 import { Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTaskModal } from "../../hooks/use-task-modal";
@@ -32,10 +33,10 @@ interface TabBarProps {
 }
 
 const PILL_TABS = [
-  { name: "index", label: "Timeline", icon: CalendarDays },
-  { name: "inbox", label: "Inbox", icon: Inbox },
-  { name: "stats", label: "Stats", icon: BarChart3 },
-  { name: "setting", label: "Réglages", icon: Settings },
+  { name: "index", label: "Timeline", icon: CalendarBlankIcon },
+  { name: "inbox", label: "Inbox", icon: TrayIcon },
+  { name: "stats", label: "Stats", icon: ChartBarIcon },
+  { name: "setting", label: "Réglages", icon: GearSixIcon },
 ] as const;
 
 export default function TabLayout() {
@@ -100,17 +101,34 @@ function FloatingTabBar({ state, navigation }: TabBarProps) {
       pointerEvents="box-none"
     >
       <View className="flex-row items-center justify-center gap-3.5 self-center w-full">
-        {/* Pilule d'onglets */}
+        {/* Pilule d'onglets — effet verre dépoli */}
         <View
-          className="flex-row items-center rounded-full border border-zinc-200 dark:border-zinc-800 px-2 py-1.5 bg-white dark:bg-zinc-900"
+          className="rounded-full overflow-hidden border border-zinc-200/70 dark:border-white/10"
           style={{
             shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.08,
-            shadowRadius: 12,
-            elevation: 6,
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: isDark ? 0.3 : 0.12,
+            shadowRadius: 16,
+            elevation: 8,
           }}
         >
+          <BlurView
+            intensity={isDark ? 60 : 80}
+            tint={isDark ? "dark" : "light"}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 8,
+              paddingVertical: 6,
+              // BlurView est translucide sur Android : fond de secours
+              backgroundColor:
+                Platform.OS === "android"
+                  ? isDark
+                    ? "rgba(24,24,27,0.88)"
+                    : "rgba(255,255,255,0.88)"
+                  : undefined,
+            }}
+          >
           {PILL_TABS.map((tab) => {
             const index = indexOf(tab.name);
             if (index === -1) return null;
@@ -126,12 +144,12 @@ function FloatingTabBar({ state, navigation }: TabBarProps) {
                 <Icon
                   size={21}
                   color={focused ? accent : inactiveColor}
-                  strokeWidth={focused ? 2.4 : 2}
+                  weight={focused ? "fill" : "regular"}
                 />
                 {focused && (
                   <Text
                     numberOfLines={1}
-                    className="text-sm font-bold"
+                    className="font-bold"
                     style={{ color: accent }}
                   >
                     {tab.label}
@@ -140,6 +158,7 @@ function FloatingTabBar({ state, navigation }: TabBarProps) {
               </Pressable>
             );
           })}
+          </BlurView>
         </View>
 
         {/* Bouton + détaché */}
@@ -149,13 +168,13 @@ function FloatingTabBar({ state, navigation }: TabBarProps) {
           style={{
             backgroundColor: accent,
             shadowColor: accent,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.35,
-            shadowRadius: 10,
-            elevation: 8,
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.4,
+            shadowRadius: 14,
+            elevation: 10,
           }}
         >
-          <Plus size={30} color="#ffffff" strokeWidth={2.5} />
+          <PlusIcon size={28} color="#ffffff" weight="bold" />
         </Pressable>
       </View>
     </View>

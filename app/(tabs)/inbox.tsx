@@ -1,8 +1,12 @@
-import { Inbox as InboxIcon, Search } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
+import {
+    TrayIcon as InboxIcon,
+    MagnifyingGlassIcon
+} from "phosphor-react-native";
 import { useMemo, useState } from "react";
 import { FlatList, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { cardShadow } from "../../components/glass-card";
 import { useTaskModal } from "../../hooks/use-task-modal";
 import { useTodos } from "../../hooks/use-todos";
 import type { Todo } from "../../types/todo";
@@ -66,8 +70,11 @@ export default function InboxScreen() {
         </View>
 
         {/* Recherche */}
-        <View className="flex-row items-center bg-zinc-100 dark:bg-zinc-800 px-4 py-1 rounded-2xl mb-6 border border-zinc-200 dark:border-zinc-700">
-          <Search size={20} strokeWidth={2} color={iconColor} />
+        <View
+          className="flex-row items-center bg-white/80 dark:bg-zinc-800/80 px-4 py-1 rounded-2xl mb-6 border border-zinc-100 dark:border-zinc-700/60"
+          style={cardShadow}
+        >
+          <MagnifyingGlassIcon size={20} weight="bold" color={iconColor} />
           <TextInput
             placeholder="Rechercher partout..."
             value={search}
@@ -97,7 +104,7 @@ export default function InboxScreen() {
               <InboxIcon
                 size={40}
                 color={isDark ? "#3f3f46" : "#d4d4d8"}
-                strokeWidth={1.5}
+                weight="duotone"
               />
               <Text className="text-zinc-400 font-medium text-center mt-4">
                 {isSearching

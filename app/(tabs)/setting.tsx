@@ -1,19 +1,19 @@
 import { useRouter } from "expo-router";
-import {
-    Bell,
-    Calendar as CalendarIcon,
-    ChevronRight,
-    Code2,
-    Download,
-    Info,
-    Moon,
-    Palette,
-    ShieldCheck,
-    Trash2,
-    Upload,
-    X
-} from "lucide-react-native";
 import { useColorScheme } from "nativewind";
+import {
+    BellRingingIcon as Bell,
+    CalendarDotsIcon as CalendarIcon,
+    CaretRightIcon as ChevronRight,
+    CodeIcon as Code2,
+    DownloadSimpleIcon as Download,
+    InfoIcon as Info,
+    MoonStarsIcon as Moon,
+    PaletteIcon as Palette,
+    ShieldCheckIcon as ShieldCheck,
+    TrashIcon as Trash2,
+    UploadSimpleIcon as Upload,
+    XIcon as X
+} from "phosphor-react-native";
 import { useEffect, useState } from "react";
 import {
     Alert,
@@ -27,6 +27,7 @@ import {
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { cardShadow } from "../../components/glass-card";
 import { ACCENT_COLORS } from "../../constants/tasks";
 import { useTodos } from "../../hooks/use-todos";
 import {
@@ -49,10 +50,11 @@ const SettingItem = ({
 }: any) => (
   <Pressable
     onPress={onPress}
-    className="flex-row items-center bg-gray-50 dark:bg-zinc-800/50 p-4 rounded-2xl mb-3 active:opacity-70"
+    className="flex-row items-center bg-white/80 dark:bg-zinc-800/50 p-4 rounded-2xl mb-3 active:opacity-70 border border-zinc-200 dark:border-zinc-700/50"
+    style={cardShadow}
   >
     <View className="p-2 rounded-xl bg-white dark:bg-zinc-800 shadow-sm">
-      <Icon size={22} color={color} />
+      <Icon size={22} color={color} weight="duotone" />
     </View>
     <Text className="flex-1 ml-4 text-lg font-medium dark:text-white">
       {title}
@@ -213,7 +215,10 @@ export default function SettingsScreen() {
             color={isDark ? "#fbbf24" : "#6366f1"}
             accent={settings.accent}
           />
-          <View className="bg-gray-50 dark:bg-zinc-800/50 p-4 rounded-2xl mb-3">
+          <View
+            className="bg-white/80 dark:bg-zinc-800/50 p-4 rounded-2xl mb-3 border border-zinc-200 dark:border-zinc-700/50"
+            style={cardShadow}
+          >
             <View className="flex-row items-center mb-3">
               <View className="p-2 rounded-xl bg-white dark:bg-zinc-800 shadow-sm">
                 <Palette size={22} color={settings.accent} />
@@ -271,7 +276,10 @@ export default function SettingsScreen() {
               accent={settings.accent}
             />
             {settings.calendarSyncEnabled && (
-              <View className="bg-gray-50 dark:bg-zinc-800/50 p-4 rounded-2xl mb-3">
+              <View
+                className="bg-white/80 dark:bg-zinc-800/50 p-4 rounded-2xl mb-3 border border-zinc-200 dark:border-zinc-700/50"
+                style={cardShadow}
+              >
                 <Text className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-3">
                   Calendriers affichés dans la timeline
                 </Text>

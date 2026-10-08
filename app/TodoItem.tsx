@@ -1,15 +1,16 @@
-import {
-    BatteryFull,
-    BatteryLow,
-    BatteryMedium,
-    Bell,
-    CheckCircle2,
-    Circle,
-    Repeat,
-    Trash2,
-} from "lucide-react-native";
 import { useColorScheme } from "nativewind";
+import {
+    BatteryFullIcon,
+    BatteryLowIcon,
+    BatteryMediumIcon,
+    BellIcon,
+    CheckCircleIcon,
+    CircleIcon,
+    RepeatIcon,
+    TrashIcon,
+} from "phosphor-react-native";
 import { Pressable, Text, View } from "react-native";
+import { cardShadow } from "../components/glass-card";
 import { TASK_ICONS } from "../constants/tasks";
 import { formatDayLabel, formatDuration, taskTimeRange } from "../lib/date";
 import type { Todo } from "../types/todo";
@@ -24,9 +25,9 @@ interface TodoItemProps {
 }
 
 const ENERGY_ICONS = {
-  low: BatteryLow,
-  medium: BatteryMedium,
-  high: BatteryFull,
+  low: BatteryLowIcon,
+  medium: BatteryMediumIcon,
+  high: BatteryFullIcon,
 };
 
 export default function TodoItem({
@@ -62,8 +63,9 @@ export default function TodoItem({
       className={`flex-row items-center p-4 mb-3 rounded-[24px] border ${
         isDark
           ? "bg-zinc-800/40 border-zinc-700/50"
-          : "bg-white border-zinc-100 shadow-sm shadow-zinc-200"
+          : "bg-white/80 border-zinc-100"
       }`}
+      style={cardShadow}
     >
       {/* Toggle */}
       <Pressable
@@ -72,12 +74,12 @@ export default function TodoItem({
         hitSlop={8}
       >
         {todo.isCompleted ? (
-          <CheckCircle2 size={24} color="#22c55e" strokeWidth={2.5} />
+          <CheckCircleIcon size={24} color="#22c55e" weight="fill" />
         ) : (
-          <Circle
+          <CircleIcon
             size={24}
             color={isDark ? "#52525b" : "#d4d4d8"}
-            strokeWidth={2}
+            weight="regular"
           />
         )}
       </Pressable>
@@ -87,7 +89,7 @@ export default function TodoItem({
         className="w-10 h-10 rounded-2xl items-center justify-center ml-3"
         style={{ backgroundColor: todo.color + "22" }}
       >
-        <Icon size={20} color={todo.color} strokeWidth={2.2} />
+        <Icon size={20} color={todo.color} weight="duotone" />
       </View>
 
       {/* Titre + méta */}
@@ -110,12 +112,14 @@ export default function TodoItem({
             {meta.join("  ·  ")}
           </Text>
           {todo.recurrence !== "none" && (
-            <Repeat size={12} color={todo.color} />
+            <RepeatIcon size={12} color={todo.color} weight="duotone" />
           )}
           {todo.reminderMinutes != null && todo.startTime && (
-            <Bell size={12} color={todo.color} />
+            <BellIcon size={12} color={todo.color} weight="duotone" />
           )}
-          {EnergyIcon && <EnergyIcon size={14} color={todo.color} />}
+          {EnergyIcon && (
+            <EnergyIcon size={14} color={todo.color} weight="duotone" />
+          )}
         </View>
       </Pressable>
 
@@ -125,7 +129,7 @@ export default function TodoItem({
         className="p-2 active:opacity-60 rounded-full"
         hitSlop={8}
       >
-        <Trash2 size={18} color="#ef4444" strokeWidth={2} />
+        <TrashIcon size={18} color="#ef4444" weight="duotone" />
       </Pressable>
     </View>
   );
